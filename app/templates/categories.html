@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ t("Categorías") }}{% endblock %}
+{% block topbar %}<div></div><div></div>{% endblock %}
+{% block content %}
+  <div class="page-heading"><h1>{{ t("Categorías") }}</h1><p>{{ t("Organizá el presupuesto y los movimientos con una clasificación consistente.") }}</p></div>
+  <section class="category-layout">
+    <article class="panel data-panel">
+      <table>
+        <thead><tr><th>{{ t("Orden") }}</th><th>{{ t("Categoría") }}</th><th>Color</th></tr></thead>
+        <tbody>
+          {% for row in categories %}
+          <tr><td>{{ row.sort_order }}</td><td><span class="category-dot" style="--category-color: {{ row.color }}"></span><strong>{{ row.name }}</strong></td><td><code>{{ row.color }}</code></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+    <article class="panel side-form">
+      <h2>{{ t("Nueva categoría") }}</h2>
+      <form method="post" action="/categories">
+        <label>{{ t("Nombre") }}<input type="text" name="name" required maxlength="60"></label>
+        <label>Color<input type="color" name="color" value="#197C8C"></label>
+        <label>{{ t("Orden") }}<input type="number" name="sort_order" value="100" min="1"></label>
+        <button class="primary-button" type="submit">{{ t("Guardar categoría") }}</button>
+      </form>
+    </article>
+  </section>
+{% endblock %}

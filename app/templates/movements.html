@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ t("Movimientos") }}{% endblock %}
+{% block topbar %}
+  <form class="month-picker" method="get" action="/movements">
+    <select name="month_id" onchange="this.form.submit()">
+      {% for month in months %}
+      <option value="{{ month.id }}" {{ 'selected' if selected_month and month.id == selected_month.id else '' }}>{{ month.label }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  <button class="primary-button" type="button" data-open-dialog="movement-dialog">{{ t("Nuevo movimiento") }}</button>
+{% endblock %}
+{% block content %}
+  <div class="page-heading"><h1>{{ t("Movimientos") }}</h1><p>{{ t("Detalle de ingresos y gastos del período.") }}</p></div>
+  <section class="panel data-panel">
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>{{ t("Fecha") }}</th><th>{{ t("Descripción") }}</th><th>{{ t("Categoría") }}</th><th>{{ t("Pago / cuenta") }}</th><th>{{ t("Cliente / proveedor") }}</th><th>{{ t("Tipo") }}</th><th>{{ t("Monto") }}</th><th>{{ t("Acciones") }}</th></tr></thead>
+        <tbody>
+          {% for row in movements %}
+          <tr>
+            <td>{{ row.transaction_date }}</td>
+            <td><strong>{{ row.description }}</strong>{% if row.note %}<small class="table-note">{{ row.note }}</small>{% endif %}</td>
+            <td><span class="category-dot" style="--category-color: {{ row.category_color or '#697886' }}"></span>{{ row.category_name or t('Sin categoría') }}</td>
+            <td>{{ row.payment_method_name or '—' }}{% if row.account_name %}<small class="table-note">{{ row.account_name }}</small>{% endif %}</td>
+            <td>{{ row.counterparty_name or '—' }}</td>
+            <td>{{ {'expense':t('Gasto'),'income':t('Ingreso'),'extraordinary':t('Extraordinario')}[row.kind] }}</td>
+            <td class="{{ 'positive' if row.kind == 'income' else 'negative' }}">{{ row.amount | money }}</td>
+            <td class="row-actions">
+              <button class="text-button" type="button" data-edit-movement
+                data-id="{{ row.id }}" data-month-id="{{ selected_month.id }}"
+                data-category-id="{{ row.category_id or '' }}" data-kind="{{ row.kind }}"
+                data-description="{{ row.description }}" data-amount="{{ row.amount }}"
+                data-transaction-date="{{ row.transaction_date }}" data-note="{{ row.note or '' }}"
+                data-payment-method-id="{{ row.payment_method_id or '' }}"
+                data-account-id="{{ row.account_id or '' }}"
+                data-counterparty-id="{{ row.counterparty_id or '' }}">{{ t("Editar") }}</button>
+              <form method="post" action="/movements/{{ row.id }}/delete" onsubmit="return confirm('¿{{ t("Eliminar") }} este movimiento?')">
+                <input type="hidden" name="month_id" value="{{ selected_month.id }}">
+                <button class="text-button danger" type="submit">{{ t("Eliminar") }}</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="table-empty">{{ t("No hay movimientos en este mes.") }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}
+{% block dialogs %}
+{% if selected_month %}
+<dialog id="movement-dialog" class="app-dialog">
+  <form method="post" action="/movements">
+    <header><div><h2>{{ t("Nuevo movimiento") }}</h2><p>{{ selected_month.label }}</p></div><button type="button" class="icon-button" data-close-dialog>×</button></header>
+    <input type="hidden" name="month_id" value="{{ selected_month.id }}">
+    <input type="hidden" name="return_to" value="/movements">
+    <div class="form-grid">
+      <label>{{ t("Tipo") }}<select name="kind"><option value="expense">{{ t("Gasto") }}</option><option value="income">{{ t("Ingreso") }}</option><option value="extraordinary">{{ t("Extraordinario") }}</option></select></label>
+      <label>{{ t("Fecha") }}<input type="date" name="transaction_date" required></label>
+      <label class="full">{{ t("Descripción") }}<input type="text" name="description" required></label>
+      <label>{{ t("Monto") }}<input type="number" name="amount" min="0.01" step="0.01" required></label>
+      <label>{{ t("Categoría") }}<select name="category_id"><option value="">{{ t("Sin categoría") }}</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}</select></label>
+      <label>{{ t("Método de pago") }}<select name="payment_method_id"><option value="">{{ t("Sin método") }}</option>{% for method in payment_methods %}<option value="{{ method.id }}">{{ method.name }}</option>{% endfor %}</select></label>
+      <label>{{ t("Cuenta") }}<select name="account_id"><option value="">{{ t("Sin cuenta") }}</option>{% for account in accounts %}<option value="{{ account.id }}">{{ account.name }}</option>{% endfor %}</select></label>
+      <label>{{ t("Cliente / proveedor") }}<select name="counterparty_id"><option value="">{{ t("Sin asignar") }}</option>{% for party in counterparties %}<option value="{{ party.id }}">{{ party.name }} · {{ {'client':t('Cliente'),'supplier':t('Proveedor'),'both':t('Ambos')}[party.party_type] }}</option>{% endfor %}</select></label>
+      <label class="full">{{ t("Nota") }}<input type="text" name="note"></label>
+    </div>
+    <footer><button type="button" class="secondary-button" data-close-dialog>{{ t("Cancelar") }}</button><button class="primary-button" type="submit">{{ t("Guardar") }}</button></footer>
+  </form>
+</dialog>
+
+<dialog id="movement-edit-dialog" class="app-dialog">
+  <form method="post" action="" data-movement-edit-form>
+    <header><div><h2>{{ t("Editar movimiento") }}</h2><p>{{ t("Actualizá los datos y guardá los cambios.") }}</p></div><button type="button" class="icon-button" data-close-dialog aria-label="{{ t("Cerrar") }}">×</button></header>
+    <input type="hidden" name="month_id">
+    <div class="form-grid">
+      <label>{{ t("Tipo") }}<select name="kind"><option value="expense">{{ t("Gasto") }}</option><option value="income">{{ t("Ingreso") }}</option><option value="extraordinary">{{ t("Extraordinario") }}</option></select></label>
+      <label>{{ t("Fecha") }}<input type="date" name="transaction_date" required></label>
+      <label class="full">{{ t("Descripción") }}<input type="text" name="description" maxlength="120" required></label>
+      <label>{{ t("Monto") }}<input type="number" name="amount" min="0.01" step="0.01" required></label>
+      <label>{{ t("Categoría") }}<select name="category_id"><option value="">{{ t("Sin categoría") }}</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}</select></label>
+      <label>{{ t("Método de pago") }}<select name="payment_method_id"><option value="">{{ t("Sin método") }}</option>{% for method in payment_methods %}<option value="{{ method.id }}">{{ method.name }}</option>{% endfor %}</select></label>
+      <label>{{ t("Cuenta") }}<select name="account_id"><option value="">{{ t("Sin cuenta") }}</option>{% for account in accounts %}<option value="{{ account.id }}">{{ account.name }}</option>{% endfor %}</select></label>
+      <label>{{ t("Cliente / proveedor") }}<select name="counterparty_id"><option value="">{{ t("Sin asignar") }}</option>{% for party in counterparties %}<option value="{{ party.id }}">{{ party.name }}</option>{% endfor %}</select></label>
+      <label class="full">{{ t("Nota") }}<input type="text" name="note" maxlength="240"></label>
+    </div>
+    <footer><button type="button" class="secondary-button" data-close-dialog>{{ t("Cancelar") }}</button><button class="primary-button" type="submit">{{ t("Guardar cambios") }}</button></footer>
+  </form>
+</dialog>
+{% endif %}
+{% endblock %}

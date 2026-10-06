@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ t("Cuentas") }}{% endblock %}
+{% block topbar %}<div></div><div></div>{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <h1>{{ t("Cuentas") }}</h1>
+    <p>{{ t("Controlá efectivo, bancos, billeteras y tarjetas desde un mismo lugar.") }}</p>
+  </div>
+  {% if request.query_params.get('error') == 'in_use' %}<div class="form-error page-message" role="alert">{{ t("La cuenta tiene movimientos. Podés desactivarla para conservar el historial.") }}</div>{% endif %}
+
+  <section class="account-summary" aria-label="{{ t("Resumen") }} de cuentas">
+    {% for row in accounts if row.is_active %}
+    <article>
+      <span>{{ row.name }}</span>
+      <strong class="{{ 'negative' if row.current_balance < 0 else 'positive' }}">{{ row.current_balance | money }}</strong>
+      <small>{{ {'cash':t('Efectivo'),'bank':t('Banco'),'wallet':t('Billetera'),'credit':t('Crédito')}[row.account_type] }} · {{ row.currency }}</small>
+    </article>
+    {% else %}
+    <p class="empty-inline">{{ t("Creá tu primera cuenta para asignarla a los movimientos.") }}</p>
+    {% endfor %}
+  </section>
+
+  <section class="management-layout">
+    <article class="panel data-panel">
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>{{ t("Cuenta") }}</th><th>{{ t("Tipo") }}</th><th>{{ t("Saldo inicial") }}</th><th>{{ t("Saldo actual") }}</th><th>{{ t("Mov.") }}</th><th>{{ t("Acciones") }}</th></tr></thead>
+          <tbody>
+            {% for row in accounts %}
+            <tr class="{{ 'inactive-row' if not row.is_active else '' }}">
+              <td><strong>{{ row.name }}</strong><small class="table-note">{{ row.currency }} · {{ 'Activa' if row.is_active else 'Inactiva' }}</small></td>
+              <td>{{ {'cash':t('Efectivo'),'bank':t('Banco'),'wallet':t('Billetera'),'credit':t('Crédito')}[row.account_type] }}</td>
+              <td>{{ row.opening_balance | money }}</td>
+              <td class="{{ 'negative' if row.current_balance < 0 else 'positive-soft' }}">{{ row.current_balance | money }}</td>
+              <td>{{ row.movement_count }}</td>
+              <td class="row-actions">
+                <button class="text-button" type="button" data-edit-account
+                  data-id="{{ row.id }}" data-name="{{ row.name }}"
+                  data-account-type="{{ row.account_type }}" data-currency="{{ row.currency }}"
+                  data-opening-balance="{{ row.opening_balance }}" data-sort-order="{{ row.sort_order }}">{{ t("Editar") }}</button>
+                <form method="post" action="/accounts/{{ row.id }}/active">
+                  <input type="hidden" name="is_active" value="{{ 'false' if row.is_active else 'true' }}">
+                  <button class="text-button {{ 'danger' if row.is_active else '' }}" type="submit">{{ 'Desactivar' if row.is_active else 'Activar' }}</button>
+                </form>
+                {% if row.movement_count == 0 %}<form method="post" action="/accounts/{{ row.id }}/delete" onsubmit="return confirm('¿{{ t("Eliminar") }} esta cuenta?')"><button class="text-button danger" type="submit">{{ t("Eliminar") }}</button></form>{% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="table-empty">{{ t("Todavía no hay cuentas configuradas.") }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="panel side-form">
+      <h2 data-account-title>{{ t("Nueva cuenta") }}</h2>
+      <form id="account-form" method="post" action="/accounts">
+        <input type="hidden" name="account_id">
+        <label>{{ t("Nombre") }}<input type="text" name="name" maxlength="80" required></label>
+        <label>{{ t("Tipo") }}<select name="account_type" required><option value="cash">{{ t("Efectivo") }}</option><option value="bank">{{ t("Banco") }}</option><option value="wallet">{{ t("Billetera") }}</option><option value="credit">{{ t("Crédito") }}</option></select></label>
+        <div class="form-grid compact-grid">
+          <label>{{ t("Moneda") }}<input type="text" name="currency" value="ARS" maxlength="3" pattern="[A-Za-z]{3}" required></label>
+          <label>{{ t("Orden") }}<input type="number" name="sort_order" value="100" min="1" required></label>
+          <label class="full">{{ t("Saldo inicial") }}<input type="number" name="opening_balance" value="0" step="0.01" required></label>
+        </div>
+        <div class="form-actions">
+          <button class="secondary-button" type="button" data-reset-account>{{ t("Limpiar") }}</button>
+          <button class="primary-button" type="submit">{{ t("Guardar cuenta") }}</button>
+        </div>
+      </form>
+    </article>
+  </section>
+{% endblock %}

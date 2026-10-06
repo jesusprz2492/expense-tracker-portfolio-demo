@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ t("Reportes") }}{% endblock %}
+{% block topbar %}
+  <form class="month-picker" method="get" action="/reports">
+    <select name="month_id" aria-label="{{ t("Mes") }}" onchange="this.form.submit()">
+      {% for month in months %}<option value="{{ month.id }}" {{ 'selected' if selected_month and month.id == selected_month.id else '' }}>{{ month.label }}</option>{% endfor %}
+    </select>
+  </form>
+  <div></div>
+{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <h1>{{ t("Reportes") }}</h1>
+    <p>{{ t("Análisis de ingresos, gastos y relaciones del período.") }}</p>
+  </div>
+
+  {% if reports %}
+  <section class="report-kpis" aria-label="{{ t("Indicadores del reporte") }}">
+    <article><span>{{ t("Ingresos") }}</span><strong class="positive">{{ reports.kpis.income | money }}</strong></article>
+    <article><span>{{ t("Gastos") }}</span><strong class="negative">{{ reports.kpis.expense | money }}</strong></article>
+    <article><span>{{ t("Resultado") }}</span><strong class="{{ 'positive' if reports.kpis.net >= 0 else 'negative' }}">{{ reports.kpis.net | money }}</strong></article>
+    <article><span>{{ t("Gasto promedio") }}</span><strong>{{ reports.kpis.average_expense | money }}</strong><small>{{ reports.kpis.transaction_count }} movimientos</small></article>
+  </section>
+
+  <section class="report-grid">
+    <article class="panel report-panel">
+      <header><h2>{{ t("Gastos por categoría") }}</h2></header>
+      <div class="report-bar-list">
+        {% for row in reports.by_category %}
+        <div class="report-bar-row">
+          <div><span class="category-dot" style="--category-color: {{ row.color }}"></span><strong>{{ row.label }}</strong><b>{{ row.amount | money }}</b></div>
+          <i><span style="width: {{ (row.percentage * 100) | round(1) }}%; --bar-color: {{ row.color }}"></span></i>
+          <small>{{ (row.percentage * 100) | round(1) }}%</small>
+        </div>
+        {% else %}<p class="table-empty">{{ t("No hay gastos en este período.") }}</p>{% endfor %}
+      </div>
+    </article>
+
+    <article class="panel report-panel">
+      <header><h2>{{ t("Métodos de pago") }}</h2></header>
+      <table class="compact-table">
+        <thead><tr><th>{{ t("Método") }}</th><th>{{ t("Mov.") }}</th><th>Total</th></tr></thead>
+        <tbody>{% for row in reports.by_payment_method %}<tr><td>{{ row.label }}</td><td>{{ row.movement_count }}</td><td>{{ row.amount | money }}</td></tr>{% else %}<tr><td colspan="3" class="table-empty">{{ t("Sin datos") }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </article>
+
+    <article class="panel report-panel report-trend-panel">
+      <header><h2>{{ t("Evolución mensual") }}</h2></header>
+      <div class="trend-list">
+        {% for row in reports.trend %}
+        <div class="trend-row">
+          <strong>{{ row.label }}</strong>
+          <div><span>{{ t("Ingresos") }}</span><i><b class="trend-income" style="width: {{ row.income_width }}%"></b></i><em>{{ row.income | money }}</em></div>
+          <div><span>{{ t("Gastos") }}</span><i><b class="trend-expense" style="width: {{ row.expense_width }}%"></b></i><em>{{ row.expense | money }}</em></div>
+        </div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="panel report-panel">
+      <header><h2>{{ t("Movimientos por cuenta") }}</h2></header>
+      <table class="compact-table">
+        <thead><tr><th>{{ t("Cuenta") }}</th><th>{{ t("Mov.") }}</th><th>{{ t("Neto") }}</th></tr></thead>
+        <tbody>{% for row in reports.by_account %}<tr><td>{{ row.label }}</td><td>{{ row.movement_count }}</td><td class="{{ 'positive-soft' if row.net >= 0 else 'negative' }}">{{ row.net | money }}</td></tr>{% else %}<tr><td colspan="3" class="table-empty">{{ t("Sin datos") }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </article>
+
+    <article class="panel report-panel report-party-panel">
+      <header><h2>{{ t("Clientes y proveedores") }}</h2></header>
+      <table class="compact-table">
+        <thead><tr><th>{{ t("Contacto") }}</th><th>{{ t("Tipo") }}</th><th>{{ t("Mov.") }}</th><th>{{ t("Total relacionado") }}</th></tr></thead>
+        <tbody>{% for row in reports.by_counterparty %}<tr><td>{{ row.label }}</td><td>{{ {'client':t('Cliente'),'supplier':t('Proveedor'),'both':t('Ambos')}[row.party_type] if row.party_type else t('Sin asignar') }}</td><td>{{ row.movement_count }}</td><td>{{ row.amount | money }}</td></tr>{% else %}<tr><td colspan="4" class="table-empty">{{ t("Sin datos") }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </article>
+  </section>
+  {% else %}
+  <section class="empty-page"><h2>{{ t("No hay períodos para reportar") }}</h2><p>{{ t("Importá o creá un mes para comenzar.") }}</p></section>
+  {% endif %}
+{% endblock %}

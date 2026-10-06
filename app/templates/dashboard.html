@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}{{ t("Resumen") }}{% endblock %}
+
+{% block topbar %}
+  <form class="month-picker" method="get" action="/dashboard">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v15H5zM8 3v4M16 3v4M5 9h14"/></svg>
+    <select name="month_id" aria-label="{{ t("Mes") }}" onchange="this.form.submit()">
+      {% for month in months %}
+      <option value="{{ month.id }}" {{ 'selected' if selected_month and month.id == selected_month.id else '' }}>
+        {{ month.label }}
+      </option>
+      {% endfor %}
+    </select>
+  </form>
+  <button class="primary-button" type="button" data-open-dialog="movement-dialog">{{ t("Nuevo gasto") }}</button>
+{% endblock %}
+
+{% block content %}
+{% if dashboard %}
+  <section class="kpi-rail" aria-label="{{ t("Resumen mensual") }}">
+    <article>
+      <span>{{ t("Ingresos") }}</span>
+      <strong class="positive">{{ dashboard.kpis.income | money }}</strong>
+    </article>
+    <article>
+      <span>{{ t("Presupuesto") }}</span>
+      <strong>{{ dashboard.kpis.budget | money }}</strong>
+    </article>
+    <article>
+      <span>{{ t("Gastado") }}</span>
+      <strong class="{{ 'negative' if dashboard.kpis.spent > 0 else '' }}">{{ dashboard.kpis.spent | money }}</strong>
+    </article>
+    <article>
+      <span>{{ t("Saldo") }}</span>
+      <strong class="{{ 'positive' if dashboard.kpis.balance >= 0 else 'negative' }}">{{ dashboard.kpis.balance | money }}</strong>
+    </article>
+  </section>
+
+  <section class="dashboard-grid">
+    <article class="panel comparison-panel">
+      <header><h2>{{ t("Comparación mensual") }}</h2></header>
+      <div class="chart-legend">
+        <span><i class="legend-income"></i>{{ t("Ingresos") }}</span>
+        <span><i class="legend-budget"></i>{{ t("Presupuesto") }}</span>
+        <span><i class="legend-spent"></i>{{ t("Gastado") }}</span>
+      </div>
+      <div class="bar-chart" aria-label="{{ t("Comparación mensual") }}">
+        <div class="chart-axis"><span>$</span><span>0</span></div>
+        <div class="bar-column">
+          <span class="bar-value">{{ dashboard.kpis.income | money }}</span>
+          <div class="bar income-bar" style="height: {{ dashboard.chart_heights[0] }}%"></div>
+        </div>
+        <div class="bar-column">
+          <span class="bar-value">{{ dashboard.kpis.budget | money }}</span>
+          <div class="bar budget-bar" style="height: {{ dashboard.chart_heights[1] }}%"></div>
+        </div>
+        <div class="bar-column">
+          <span class="bar-value">{{ dashboard.kpis.spent | money }}</span>
+          <div class="bar spent-bar" style="height: {{ dashboard.chart_heights[2] }}%"></div>
+        </div>
+      </div>
+      <p class="chart-caption">{{ selected_month.label }}</p>
+    </article>
+
+    <article class="panel budget-panel">
+      <header><h2>{{ t("Presupuesto por categoría") }}</h2></header>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>{{ t("Categoría") }}</th><th>{{ t("Presupuesto") }}</th><th>{{ t("Gastado") }}</th><th>{{ t("Disponible") }}</th><th>{{ t("Progreso") }}</th></tr>
+          </thead>
+          <tbody>
+            {% for row in dashboard.categories %}
+            {% set progress = (row.progress * 100) if row.progress is not none else none %}
+            <tr>
+              <td><span class="category-dot" style="--category-color: {{ row.color }}"></span>{{ row.name }}</td>
+              <td>{{ row.planned | money }}</td>
+              <td>{{ row.spent | money }}</td>
+              <td class="{{ 'negative' if row.available < 0 else 'positive-soft' }}">{{ row.available | money }}</td>
+              <td>
+                {% if progress is none and row.spent > 0 %}
+                <span class="no-budget">{{ t("Sin presupuesto") }}</span>
+                {% else %}
+                <div class="progress-cell">
+                  <span>{{ (progress or 0) | round(0) | int }}%</span>
+                  <i class="{{ 'over' if progress and progress > 100 else '' }}">
+                    <b style="width: {{ [progress or 0, 100] | min }}%"></b>
+                  </i>
+                </div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section class="panel recent-panel">
+    <header>
+      <h2>{{ t("Movimientos recientes") }}</h2>
+      <a href="/movements?month_id={{ selected_month.id }}">{{ t("Ver todos los movimientos") }}</a>
+    </header>
+    {% if dashboard.recent %}
+    <div class="movement-list">
+      {% for movement in dashboard.recent %}
+      <div class="movement-row">
+        <span class="movement-mark" style="--category-color: {{ movement.category_color or '#697886' }}"></span>
+        <div>
+          <strong>{{ movement.description }}</strong>
+          <small>{{ movement.category_name or t('Sin categoría') }} · {{ movement.transaction_date }}</small>
+        </div>
+        <b class="{{ 'positive' if movement.kind == 'income' else 'negative' }}">
+          {{ '+' if movement.kind == 'income' else '−' }}{{ movement.amount | money }}
+        </b>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 8h28v48H18zM24 18h16M24 25h16M24 38h6M34 38h6"/></svg>
+      <div>
+        <strong>{{ t("Aún no hay movimientos en") }} {{ selected_month.label }}</strong>
+        <p>{{ t("Comenzá registrando tu primer gasto o ingreso.") }}</p>
+        <button class="primary-button small" type="button" data-open-dialog="movement-dialog">{{ t("Nuevo gasto") }}</button>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+{% else %}
+  <section class="empty-page">
+    <h1>{{ t("Primero necesitamos un mes") }}</h1>
+    <p>{{ t("Usá el importador del Excel o agregá un período desde PostgreSQL.") }}</p>
+  </section>
+{% endif %}
+{% endblock %}
+
+{% block dialogs %}
+{% if selected_month %}
+<dialog id="movement-dialog" class="app-dialog">
+  <form method="post" action="/movements">
+    <header>
+      <div><h2>{{ t("Nuevo movimiento") }}</h2><p>{{ selected_month.label }}</p></div>
+      <button type="button" class="icon-button" data-close-dialog aria-label="{{ t("Cerrar") }}">×</button>
+    </header>
+    <input type="hidden" name="month_id" value="{{ selected_month.id }}">
+    <input type="hidden" name="return_to" value="/dashboard">
+    <div class="form-grid">
+      <label>{{ t("Tipo") }}
+        <select name="kind"><option value="expense">{{ t("Gasto") }}</option><option value="income">{{ t("Ingreso") }}</option><option value="extraordinary">{{ t("Extraordinario") }}</option></select>
+      </label>
+      <label>{{ t("Fecha") }}<input type="date" name="transaction_date" required></label>
+      <label class="full">{{ t("Descripción") }}<input type="text" name="description" maxlength="120" required></label>
+      <label>{{ t("Monto") }}<input type="number" name="amount" min="0.01" step="0.01" required></label>
+      <label>{{ t("Categoría") }}
+        <select name="category_id">
+          <option value="">{{ t("Sin categoría") }}</option>
+          {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>{{ t("Método de pago") }}
+        <select name="payment_method_id"><option value="">{{ t("Sin método") }}</option>{% for method in payment_methods %}<option value="{{ method.id }}">{{ method.name }}</option>{% endfor %}</select>
+      </label>
+      <label>{{ t("Cuenta") }}
+        <select name="account_id"><option value="">{{ t("Sin cuenta") }}</option>{% for account in accounts %}<option value="{{ account.id }}">{{ account.name }}</option>{% endfor %}</select>
+      </label>
+      <label>{{ t("Cliente / proveedor") }}
+        <select name="counterparty_id"><option value="">{{ t("Sin asignar") }}</option>{% for party in counterparties %}<option value="{{ party.id }}">{{ party.name }}</option>{% endfor %}</select>
+      </label>
+      <label class="full">{{ t("Nota") }}<input type="text" name="note" maxlength="240"></label>
+    </div>
+    <footer>
+      <button type="button" class="secondary-button" data-close-dialog>{{ t("Cancelar") }}</button>
+      <button type="submit" class="primary-button">{{ t("Guardar movimiento") }}</button>
+    </footer>
+  </form>
+</dialog>
+{% endif %}
+{% endblock %}

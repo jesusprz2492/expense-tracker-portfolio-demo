@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ t("Métodos de pago") }}{% endblock %}
+{% block topbar %}<div></div><div></div>{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <h1>{{ t("Métodos de pago") }}</h1>
+    <p>{{ t("Definí las opciones disponibles al registrar o editar movimientos.") }}</p>
+  </div>
+  {% if request.query_params.get('error') == 'in_use' %}<div class="form-error page-message" role="alert">{{ t("El método está en uso. Podés desactivarlo para conservar el historial.") }}</div>{% endif %}
+
+  <section class="management-layout">
+    <article class="panel data-panel">
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>{{ t("Método") }}</th><th>{{ t("Orden") }}</th><th>{{ t("Movimientos") }}</th><th>{{ t("Estado") }}</th><th>{{ t("Acciones") }}</th></tr></thead>
+          <tbody>
+            {% for row in payment_methods %}
+            <tr class="{{ 'inactive-row' if not row.is_active else '' }}">
+              <td><strong>{{ row.name }}</strong></td>
+              <td>{{ row.sort_order }}</td>
+              <td>{{ row.usage_count }}</td>
+              <td><span class="status-label {{ 'active' if row.is_active else 'inactive' }}">{{ t('Activo') if row.is_active else t('Inactivo') }}</span></td>
+              <td class="row-actions">
+                <button
+                  class="text-button"
+                  type="button"
+                  data-edit-payment-method
+                  data-id="{{ row.id }}"
+                  data-name="{{ row.name }}"
+                  data-sort-order="{{ row.sort_order }}"
+                >{{ t("Editar") }}</button>
+                <form method="post" action="/payment-methods/{{ row.id }}/active">
+                  <input type="hidden" name="is_active" value="{{ 'false' if row.is_active else 'true' }}">
+                  <button class="text-button {{ 'danger' if row.is_active else '' }}" type="submit">{{ 'Desactivar' if row.is_active else 'Activar' }}</button>
+                </form>
+                {% if row.usage_count == 0 %}<form method="post" action="/payment-methods/{{ row.id }}/delete" onsubmit="return confirm('¿{{ t("Eliminar") }} este método de pago?')"><button class="text-button danger" type="submit">{{ t("Eliminar") }}</button></form>{% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="table-empty">{{ t("Todavía no hay métodos de pago.") }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="panel side-form">
+      <h2 data-payment-method-title>{{ t("Nuevo método") }}</h2>
+      <form id="payment-method-form" method="post" action="/payment-methods">
+        <input type="hidden" name="method_id">
+        <label>{{ t("Nombre") }}<input type="text" name="name" maxlength="80" required></label>
+        <label>{{ t("Orden") }}<input type="number" name="sort_order" value="100" min="1" required></label>
+        <div class="form-actions">
+          <button class="secondary-button" type="button" data-reset-payment-method>{{ t("Limpiar") }}</button>
+          <button class="primary-button" type="submit">{{ t("Guardar método") }}</button>
+        </div>
+      </form>
+    </article>
+  </section>
+{% endblock %}

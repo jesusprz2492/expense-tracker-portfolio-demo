@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ t("Presupuestos") }}{% endblock %}
+{% block topbar %}
+  <form class="month-picker" method="get" action="/budgets">
+    <select name="month_id" onchange="this.form.submit()">
+      {% for month in months %}<option value="{{ month.id }}" {{ 'selected' if selected_month and month.id == selected_month.id else '' }}>{{ month.label }}</option>{% endfor %}
+    </select>
+  </form>
+  <div></div>
+{% endblock %}
+{% block content %}
+  <div class="page-heading"><h1>{{ t("Presupuestos") }}</h1><p>{{ t("Definí cuánto querés destinar a cada categoría.") }}</p></div>
+  {% if dashboard %}
+  <section class="panel data-panel">
+    <table>
+      <thead><tr><th>{{ t("Categoría") }}</th><th>{{ t("Presupuesto actual") }}</th><th>{{ t("Gastado") }}</th><th>{{ t("Disponible") }}</th><th>{{ t("Nuevo importe") }}</th></tr></thead>
+      <tbody>
+        {% for row in dashboard.categories %}
+        <tr>
+          <td><span class="category-dot" style="--category-color: {{ row.color }}"></span><strong>{{ row.name }}</strong></td>
+          <td>{{ row.planned | money }}</td>
+          <td>{{ row.spent | money }}</td>
+          <td class="{{ 'negative' if row.available < 0 else 'positive-soft' }}">{{ row.available | money }}</td>
+          <td>
+            <form class="inline-form" method="post" action="/budgets">
+              <input type="hidden" name="month_id" value="{{ selected_month.id }}">
+              <input type="hidden" name="category_id" value="{{ row.category_id }}">
+              <input type="number" name="amount" min="0" step="0.01" value="{{ row.planned }}" required>
+              <button class="secondary-button small" type="submit">{{ t("Guardar") }}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+{% endblock %}

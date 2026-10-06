@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ t("Clientes y proveedores") }}{% endblock %}
+{% block topbar %}<div></div><div></div>{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <h1>{{ t("Clientes y proveedores") }}</h1>
+    <p>{{ t("Centralizá los contactos que originan ingresos y gastos.") }}</p>
+  </div>
+  {% if request.query_params.get('error') == 'in_use' %}<div class="form-error page-message" role="alert">{{ t("El contacto tiene movimientos. Podés desactivarlo para conservar el historial.") }}</div>{% endif %}
+
+  <section class="management-layout wide-form-layout">
+    <article class="panel data-panel">
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>{{ t("Nombre") }}</th><th>{{ t("Tipo") }}</th><th>{{ t("Contacto") }}</th><th>{{ t("Mov.") }}</th><th>{{ t("Estado") }}</th><th>{{ t("Acciones") }}</th></tr></thead>
+          <tbody>
+            {% for row in counterparties %}
+            <tr class="{{ 'inactive-row' if not row.is_active else '' }}">
+              <td><strong>{{ row.name }}</strong>{% if row.tax_id %}<small class="table-note">{{ row.tax_id }}</small>{% endif %}</td>
+              <td>{{ {'client':t('Cliente'),'supplier':t('Proveedor'),'both':t('Cliente y proveedor')}[row.party_type] }}</td>
+              <td>{{ row.email or row.phone or '—' }}{% if row.email and row.phone %}<small class="table-note">{{ row.phone }}</small>{% endif %}</td>
+              <td>{{ row.movement_count }}</td>
+              <td><span class="status-label {{ 'active' if row.is_active else 'inactive' }}">{{ t('Activo') if row.is_active else t('Inactivo') }}</span></td>
+              <td class="row-actions">
+                <button class="text-button" type="button" data-edit-contact
+                  data-id="{{ row.id }}" data-party-type="{{ row.party_type }}"
+                  data-name="{{ row.name }}" data-tax-id="{{ row.tax_id or '' }}"
+                  data-email="{{ row.email or '' }}" data-phone="{{ row.phone or '' }}"
+                  data-notes="{{ row.notes or '' }}">{{ t("Editar") }}</button>
+                <form method="post" action="/contacts/{{ row.id }}/active">
+                  <input type="hidden" name="is_active" value="{{ 'false' if row.is_active else 'true' }}">
+                  <button class="text-button {{ 'danger' if row.is_active else '' }}" type="submit">{{ 'Desactivar' if row.is_active else 'Activar' }}</button>
+                </form>
+                {% if row.movement_count == 0 %}<form method="post" action="/contacts/{{ row.id }}/delete" onsubmit="return confirm('¿{{ t("Eliminar") }} este contacto?')"><button class="text-button danger" type="submit">{{ t("Eliminar") }}</button></form>{% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="table-empty">{{ t("Todavía no hay clientes ni proveedores.") }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="panel side-form">
+      <h2 data-contact-title>{{ t("Nuevo contacto") }}</h2>
+      <form id="contact-form" method="post" action="/contacts">
+        <input type="hidden" name="counterparty_id">
+        <label>{{ t("Tipo") }}<select name="party_type" required><option value="client">{{ t("Cliente") }}</option><option value="supplier">{{ t("Proveedor") }}</option><option value="both">{{ t("Cliente y proveedor") }}</option></select></label>
+        <label>{{ t("Nombre") }}<input type="text" name="name" maxlength="120" required></label>
+        <label>{{ t("CUIT / identificación") }}<input type="text" name="tax_id" maxlength="40"></label>
+        <label>Email<input type="email" name="email" maxlength="120"></label>
+        <label>{{ t("Teléfono") }}<input type="tel" name="phone" maxlength="40"></label>
+        <label>{{ t("Notas") }}<textarea name="notes" rows="3" maxlength="400"></textarea></label>
+        <div class="form-actions">
+          <button class="secondary-button" type="button" data-reset-contact>{{ t("Limpiar") }}</button>
+          <button class="primary-button" type="submit">{{ t("Guardar contacto") }}</button>
+        </div>
+      </form>
+    </article>
+  </section>
+{% endblock %}

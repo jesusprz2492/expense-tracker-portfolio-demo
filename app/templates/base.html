@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ browser_title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/app.css') }}?v=20260802e">
+  <script defer src="{{ url_for('static', path='/js/app.js') }}?v=20260802e"></script>
+<link rel="stylesheet" href="/static/css/demo.css"><script defer src="/static/js/demo.js"></script></head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <strong class="brand-name {{ 'brand-name--long' if app_name|length > 18 else '' }}">{{ app_name }}</strong>
+        <span class="powered-signature powered-signature--sidebar">
+          <span>Powered by</span>
+          <img
+            class="powered-logo"
+            src="{{ url_for('static', path='/img/cleryvo-logo.png') }}"
+            alt="Cleryvo"
+          >
+        </span>
+      </div>
+
+      <nav class="main-nav" aria-label="{{ t("Navegación principal") }}">
+        <a href="/dashboard" class="{{ 'active' if active_page == 'dashboard' else '' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 10v10h13V10M9.5 20v-6h5v6"/></svg>
+          {{ t("Resumen") }}
+        </a>
+        <a href="/movements" class="{{ 'active' if active_page == 'movements' else '' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5h14v17H5zM8 8h8M8 12h8M8 16h5"/></svg>
+          {{ t("Movimientos") }}
+        </a>
+        <a href="/reports" class="{{ 'active' if active_page == 'reports' else '' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+          {{ t("Reportes") }}
+        </a>
+        <a href="/budgets" class="{{ 'active' if active_page == 'budgets' else '' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 9h16M8 14h3"/></svg>
+          {{ t("Presupuestos") }}
+        </a>
+        <a href="/accounts" class="{{ 'active' if active_page == 'accounts' else '' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v12H3zM3 10h18M16 15h2M6 4h12v3"/></svg>
+          {{ t("Cuentas") }}
+        </a>
+        <a href="/contacts" class="{{ 'active' if active_page == 'contacts' else '' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-3a6 6 0 0 1 12 0v3M17 8h5M19.5 5.5v5"/></svg>
+          {{ t("Contactos") }}
+        </a>
+        <a href="/categories" class="{{ 'active' if active_page == 'categories' else '' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10l6 5-6 5H4zM8 12h.01"/></svg>
+          {{ t("Categorías") }}
+        </a>
+        <a href="/payment-methods" class="{{ 'active' if active_page == 'payment_methods' else '' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v13H3zM3 10h18M7 15h4"/></svg>
+          {{ t("Métodos de pago") }}
+        </a>
+      </nav>
+
+      
+      <div class="sidebar-status">
+        <span class="status-dot"></span>
+        {{ database_status_label }}
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        {% block topbar %}
+        <div></div>
+        {% endblock %}
+        <div class="demo-toolbar"><span class="demo-label">{{ t("Sin contraseña · No login") }}</span>
+        <div class="language-switch" role="group" aria-label="Language / Idioma">
+          <button type="button" data-demo-language="en" aria-pressed="{{ 'true' if lang == 'en' else 'false' }}">EN</button>
+          <button type="button" data-demo-language="es" aria-pressed="{{ 'true' if lang == 'es' else 'false' }}">ES</button>
+        </div></div>
+      </header>
+
+      <main class="content">
+        <section class="demo-banner" aria-label="Portfolio demonstration">
+          <strong>{{ t("Excel → Web app · Portfolio demo") }}</strong>
+          <p>{{ t("Todos los datos son ficticios y están expresados en USD. Podés registrar movimientos y ajustar presupuestos. Tus cambios se borran al recargar, salir o cumplirse 1 hora.") }}</p>
+        <div class="demo-controls"><span data-demo-clock></span><button class="secondary-button small" type="button" data-demo-reset>{{ t("Reiniciar demo / Reset") }}</button></div><p data-demo-status role="status">{{ t("Los cambios son temporales y exclusivos de esta pestaña. No ingreses información personal.") }}</p></section>
+        {% block content %}{% endblock %}
+      </main>
+
+      <footer class="app-footer">
+        <span class="powered-signature powered-signature--footer">
+          <span>Powered by</span>
+          <img
+            class="powered-logo"
+            src="{{ url_for('static', path='/img/cleryvo-logo.png') }}"
+            alt="Cleryvo"
+          >
+        </span>
+      </footer>
+    </div>
+  </div>
+  {% block dialogs %}{% endblock %}
+</body>
+</html>
